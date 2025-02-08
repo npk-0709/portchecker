@@ -9,33 +9,42 @@ function checkPort($ip, $port, $timeout = 3)
     return false;
 }
 
-$result = null;
-$host = null;
-$ip = null;
-$port = Null;
+$result = "";
+$ip = "";
+$host = "";
+$port = 0;
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $ip = $_POST["ip"] ?? "";
+    $input = trim($_POST["ip"] ?? "");
     $port = (int) ($_POST["port"] ?? 0);
-    if (!filter_var($ip, FILTER_VALIDATE_IP)) {
-        $host = $ip;
-        $ip = gethostbyname($ip);
-        if (!filter_var($ip, FILTER_VALIDATE_IP)) {
-            $result = "<div style='color:red'>IP is not valid.</div>";
+    if (filter_var($input, FILTER_VALIDATE_IP)) {
+        $ip = $input;
+    } else {
+        $host = $input;
+        $resolvedIp = gethostbyname($host);
+        if (!filter_var($resolvedIp, FILTER_VALIDATE_IP) || $resolvedIp === $host) {
+            $result = "<div style='color:red'>Hostname or IP is not valid.</div>";
         } else {
-            if ($port > 0 && $port <= 65535) {
-                $isOpen = checkPort($ip, $port);
-                if ($host) {
-                    $ip = $host;
-                }
-                $result = $isOpen ? " <div style='color:cyan'>$ip:$port  <b style='color:green'>is OPEN <b>." : "<div style='color:cyan'>$ip:$port <b style='color:red'>is CLOSE <b>.";
+            $ip = $resolvedIp;
+        }
+    }
+
+    if (empty($result)) {
+        if ($port < 1 || $port > 65535) {
+            $result = "<div style='color:red'>Port must from 1 to 65535.</div>";
+        } else {
+            $isOpen = checkPort($ip, $port);
+            $displayHost = $host ?: $ip;
+            if ($isOpen) {
+                $result = "<div style='color:cyan'>{$displayHost}:{$port} <b style='color:green'>is OPEN</b>.</div>";
             } else {
-                $result = "<div style='color:red'>Port Form 1 to 65535.</div>";
+                $result = "<div style='color:cyan'>{$displayHost}:{$port} <b style='color:red'>is CLOSED</b>.</div>";
             }
         }
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="vi">
